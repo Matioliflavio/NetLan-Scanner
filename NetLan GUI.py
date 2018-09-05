@@ -45,20 +45,20 @@ class FramePrincipal(Frame):
         self.frameBtns = Frame( bg=self._marinho, height=80)
         self.frameBtns.pack(side=TOP,fill=X) 
 
-        self.btnScan = Button(self.frameBtns, width=78, height=30)
+        self.btnScan = Button(self.frameBtns, width=78, height=30, command=self.scan)
         self.imgScan = PhotoImage(file="Icons/Scan.png")
         self.btnScan.config(image=self.imgScan)
         self.btnScan.pack(side=LEFT, padx=5, pady=10)  
 
-        self.btnClear = Button(self.frameBtns, width=78, height=30)
+        self.btnClear = Button(self.frameBtns, width=78, height=30, command=self.clear)
         self.imgClear = PhotoImage(file="Icons/Clear2.png")
         self.btnClear.config(image=self.imgClear)
         self.btnClear.pack(side=LEFT, padx=5, pady=10)
     
-        self.btnRange = Button(self.frameBtns, text="IP Range: 192.168.200.254 - 192.168.200.254", font=self._font3, justify=LEFT, width=40, height=1)
+        self.btnRange = Button(self.frameBtns, text="IP Range: 192.168.200.254 - 192.168.200.254", font=self._font3, justify=LEFT, width=40, height=1, command=self.range)
         self.btnRange.pack(side=LEFT, padx=5, pady=10)
     
-        self.btnPort = Button(self.frameBtns, width=78, height=30)
+        self.btnPort = Button(self.frameBtns, width=78, height=30, command=self.port)
         self.imgPort = PhotoImage(file="Icons/Port.png")
         self.btnPort.config(image=self.imgPort)
         self.btnPort.pack(side=LEFT, padx=5, pady=10)
@@ -66,7 +66,7 @@ class FramePrincipal(Frame):
         self.progress = ttk.Progressbar(self.frameBtns, orient="horizontal", length=140, mode="determinate")
         self.progress.pack(side=LEFT, padx=5, pady=10)
 
-        self.btnSave = Button(self.frameBtns, width=78, height=30)
+        self.btnSave = Button(self.frameBtns, width=78, height=30, command=self.save)
         self.imgSave = PhotoImage(file="Icons/Save.png")
         self.btnSave.config(image=self.imgSave)
         self.btnSave.pack(side=LEFT, padx=5, pady=10)
@@ -97,11 +97,7 @@ class FramePrincipal(Frame):
         self.frameTabela.grid_columnconfigure(0, weight=1)
         self.frameTabela.grid_rowconfigure(0, weight=1)
 
-        for n in range(50):
-            self.tabela.insert('', 'end', text=n, values=(str(n+1).zfill(2), 10+n,'MAC'+str(n).zfill(2), 'VENDOR'+str(n), "Hosrname"+str(n), "Ports"+str(n)), tags=("par" if n%2 == 0 else "impar",) )
-    
-        self.tabela.tag_configure("par", background=self._agua)
-        self.tabela.tag_configure("impar", background=self._branco)
+        
     # ------------------------------------------------------------------------------------------
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> FUNÇÕES GERAIS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     # ------------------------------------------------------------------------------------------ 
@@ -113,11 +109,30 @@ class FramePrincipal(Frame):
     def sort_column(self, tv, col, reverse):
         l = [(tv.set(k, col), k) for k in tv.get_children('')]
         l.sort(reverse=reverse)
-        # rearrange items in sorted positions
         for index, (val, k) in enumerate(l):
             tv.move(k, '', index)
-        # reverse sort next time
         tv.heading(col, command=lambda: self.sort_column(tv, col, not reverse))
+
+    def clear(self):
+        for i in self.tabela.get_children():
+            self.tabela.delete(i)
+
+    def scan(self):
+        #provisorio pso pra encher tabela! kkk
+        for n in range(50):
+            self.tabela.insert('', 'end', text=n, values=(str(n+1).zfill(2), 10+n,'MAC'+str(n).zfill(2), 'VENDOR'+str(n), "Hosrname"+str(n), "Ports"+str(n)), tags=("par" if n%2 == 0 else "impar",) )
+    
+        self.tabela.tag_configure("par", background=self._agua)
+        self.tabela.tag_configure("impar", background=self._branco)
+
+    def range(self):
+        print("Range")
+
+    def port(self):
+        print("Port")
+    
+    def save(self):
+        print("Save")
 
 def main():
     app = FramePrincipal()
