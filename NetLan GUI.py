@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import filedialog
 import tkinter.ttk as ttk
 from tkinter import messagebox as mbox
+import socket
 
 class FramePrincipal(Frame):
     
@@ -20,7 +21,7 @@ class FramePrincipal(Frame):
     _font5 = "Tahoma 13 Bold"
 
     #Strings
-    _version = "0.10b"
+    _version = "0.11b"
 
     _columns = ('IP', 'Macaddress', 'Vendor', 'Hostname', 'Ports')
 
@@ -54,16 +55,29 @@ class FramePrincipal(Frame):
         self.imgClear = PhotoImage(file="Icons/Clear2.png")
         self.btnClear.config(image=self.imgClear)
         self.btnClear.pack(side=LEFT, padx=5, pady=10)
-    
-        self.btnRange = Button(self.frameBtns, text="IP Range: 192.168.200.254 - 192.168.200.254", font=self._font3, justify=LEFT, width=40, height=1, command=self.range)
-        self.btnRange.pack(side=LEFT, padx=5, pady=10)
+
+        self.ipRange = Label(self.frameBtns, text="IP Range:", font=self._font3, bg=self._marinho, fg=self._branco)
+        self.ipRange.pack(side=LEFT, padx=3, pady=10)
+
+        self.startIPaddr = StringVar()
+        self.startIP = Entry(self.frameBtns, textvariable=self.startIPaddr, font=self._font3, width=14)
+        self.startIP.pack(side=LEFT, padx=1, pady=10)
+
+        self.to = Label(self.frameBtns, text="to:", font=self._font3, bg=self._marinho, fg=self._branco)
+        self.to.pack(side=LEFT, padx=1, pady=10)
+
+        self.endIPaddr = StringVar()
+        self.endIP = Entry(self.frameBtns, textvariable=self.endIPaddr, font=self._font3, width=14)
+        self.endIP.pack(side=LEFT, padx=3, pady=10)
+
+        self.getLocalIP()
     
         self.btnPort = Button(self.frameBtns, width=78, height=30, command=self.port)
         self.imgPort = PhotoImage(file="Icons/Port.png")
         self.btnPort.config(image=self.imgPort)
         self.btnPort.pack(side=LEFT, padx=5, pady=10)
 
-        self.progress = ttk.Progressbar(self.frameBtns, orient="horizontal", length=140, mode="determinate")
+        self.progress = ttk.Progressbar(self.frameBtns, orient="horizontal", length=132, mode="determinate")
         self.progress.pack(side=LEFT, padx=5, pady=10)
 
         self.btnSave = Button(self.frameBtns, width=78, height=30, command=self.save)
@@ -112,6 +126,20 @@ class FramePrincipal(Frame):
         for index, (val, k) in enumerate(l):
             tv.move(k, '', index)
         tv.heading(col, command=lambda: self.sort_column(tv, col, not reverse))
+    
+    def getLocalIP(self):
+        self.startIPaddr.set(socket.gethostbyname(socket.gethostname()))
+        try: 
+            self.hostName = socket.gethostname() 
+            self.hostIP = socket.gethostbyname(self.hostName) 
+            print("Hostname :  ", self.hostName) 
+            print("IP : ", self.hostIP)
+            ipRange= self.hostIP.split(".")
+            self.startIPaddr.set(".".join(ipRange[:3])+".1")
+            self.endIPaddr.set(".".join(ipRange[:3])+".254") 
+        except: 
+            print("Unable to get Hostname and IP")
+
 
     def clear(self):
         for i in self.tabela.get_children():
