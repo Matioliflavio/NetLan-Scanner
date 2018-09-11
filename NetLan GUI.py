@@ -2,7 +2,13 @@ from tkinter import *
 from tkinter import filedialog
 import tkinter.ttk as ttk
 from tkinter import messagebox as mbox
+from multiprocessing.dummy import Pool as ThreadPool 
+from getmac import get_mac_address
 import socket
+import json
+import os
+
+
 
 class FramePrincipal(Frame):
     
@@ -27,6 +33,12 @@ class FramePrincipal(Frame):
 
     _datatable = []
 
+    #vendor list
+    f = open("MacAddressVendor.json", "r")
+    _vendorList = json.load(f)
+    print("Vendor list Loaded")
+    f.close()
+
     def __init__(self, master=None):
         
         #------------------------
@@ -46,12 +58,12 @@ class FramePrincipal(Frame):
         self.frameBtns = Frame( bg=self._marinho, height=80)
         self.frameBtns.pack(side=TOP,fill=X) 
 
-        self.btnScan = Button(self.frameBtns, width=78, height=30, command=self.scan)
+        self.btnScan = Button(self.frameBtns, width=78, height=30, command=self.btnScan)
         self.imgScan = PhotoImage(file="Icons/Scan.png")
         self.btnScan.config(image=self.imgScan)
         self.btnScan.pack(side=LEFT, padx=5, pady=10)  
 
-        self.btnClear = Button(self.frameBtns, width=78, height=30, command=self.clear)
+        self.btnClear = Button(self.frameBtns, width=78, height=30, command=self.btnClear)
         self.imgClear = PhotoImage(file="Icons/Clear2.png")
         self.btnClear.config(image=self.imgClear)
         self.btnClear.pack(side=LEFT, padx=5, pady=10)
@@ -72,7 +84,7 @@ class FramePrincipal(Frame):
 
         self.getLocalIP()
     
-        self.btnPort = Button(self.frameBtns, width=78, height=30, command=self.port)
+        self.btnPort = Button(self.frameBtns, width=78, height=30, command=self.btnPort)
         self.imgPort = PhotoImage(file="Icons/Port.png")
         self.btnPort.config(image=self.imgPort)
         self.btnPort.pack(side=LEFT, padx=5, pady=10)
@@ -80,7 +92,7 @@ class FramePrincipal(Frame):
         self.progress = ttk.Progressbar(self.frameBtns, orient="horizontal", length=132, mode="determinate")
         self.progress.pack(side=LEFT, padx=5, pady=10)
 
-        self.btnSave = Button(self.frameBtns, width=78, height=30, command=self.save)
+        self.btnSave = Button(self.frameBtns, width=78, height=30, command=self.btnSave)
         self.imgSave = PhotoImage(file="Icons/Save.png")
         self.btnSave.config(image=self.imgSave)
         self.btnSave.pack(side=LEFT, padx=5, pady=10)
@@ -141,26 +153,78 @@ class FramePrincipal(Frame):
             print("Unable to get Hostname and IP")
 
 
-    def clear(self):
+    def btnClear(self):
+        self.progress["value"] = 0
         for i in self.tabela.get_children():
             self.tabela.delete(i)
 
-    def scan(self):
-        #provisorio pso pra encher tabela! kkk
+    def btnScan(self):
+        if self.montaListaIp(self.startIPaddr.get(), self.endIPaddr.get()) == None: return
+        #provisorio so pra encher tabela! kkk
         for n in range(50):
             self.tabela.insert('', 'end', text=n, values=(str(n+1).zfill(2), 10+n,'MAC'+str(n).zfill(2), 'VENDOR'+str(n), "Hosrname"+str(n), "Ports"+str(n)), tags=("par" if n%2 == 0 else "impar",) )
-    
         self.tabela.tag_configure("par", background=self._agua)
         self.tabela.tag_configure("impar", background=self._branco)
 
-    def range(self):
-        print("Range")
-
-    def port(self):
+    def btnPort(self):
         print("Port")
     
-    def save(self):
+    def btnSave(self):
         print("Save")
+
+    #--------------------------------------------------
+    #--- Funções do scaner ----------------------------
+    #--------------------------------------------------
+
+    def scan(self, ip):
+        self.progress["value"] +=1
+        ping = "ping -n 1 -i 1 -w 500 " + str(ip)
+        if os.system(ping) == 0:
+            #Mac Address
+            try:
+                macaddress = get_mac_address(ip=str(ip))
+                vendor = vendorDataTable[macaddress[:9].replace(":", "").upper()]
+            except:
+                macaddress = None
+                vendor = None
+
+            #Host Name
+            try:
+                hostname = socket.gethostbyaddr("10.0.1." + str(n))
+            except:
+                hostname = None
+                print("erro ao tentar resolver hostName")
+            if macaddress:
+                return ip, macaddress, vendor, hostname
+            else:
+                return
+
+    def montaListaIp(self, startIP, endIP):
+        try:
+            socket.inet_aton(startIP)
+            start = startIP.split(".")
+        except socket.error:
+            print("StartIP NOT VALID")
+            return
+        try:
+            socket.inet_aton(endIP)
+            end = endIP.split(".")
+        except socket.error:
+            print("END IP NOT VALID")
+            return
+
+
+    def multiThreadScan(self, ipRange):
+        
+        i=[]
+        for n in range(254): 
+                i.append("10.0.1." + str(n))
+                
+        pool = ThreadPool() 
+        result = pool.map(scan, i) 
+        pool.close() 
+        count = 0
+        return result
 
 def main():
     app = FramePrincipal()
