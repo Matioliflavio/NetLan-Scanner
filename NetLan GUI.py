@@ -4,6 +4,7 @@ import tkinter.ttk as ttk
 from tkinter import messagebox as mbox
 from multiprocessing.dummy import Pool as ThreadPool 
 from getmac import get_mac_address
+import ipaddress
 import socket
 import json
 import os
@@ -47,10 +48,10 @@ class FramePrincipal(Frame):
 
         super().__init__()
         self.master.iconbitmap("Icons/NetLan Scanner.ico")
-        self.centralizar(900,600)
+        self.centralizar(900,300) #(900, 600)
         self.master.title("Net Lan Scanner    *V" + str(self._version))
         self.master.resizable(True, True)
-        self.master.minsize(width=900, height=300)
+        self.master.minsize(width=900, height=300) #(width=900, height=300)
         self.master["bg"] = self._branco
         self.pack()
 
@@ -159,10 +160,24 @@ class FramePrincipal(Frame):
             self.tabela.delete(i)
 
     def btnScan(self):
-        if self.montaListaIp(self.startIPaddr.get(), self.endIPaddr.get()) == None: return
+        l = self.montaListaIp(self.startIPaddr.get(), self.endIPaddr.get())
+        if l == None: 
+            return
+        else:
+            result = self.multiThreadScan(l)
+            print(result)
+        if result:
+            count = 1
+            for n in result:
+                if n:
+                    self.tabela.insert('', 'end', text=n, values=(str(count).zfill(2), n[0],  n[1], n[2], n[3]), tags=("par" if count % 2 == 0 else "impar",) )
+                    count += 1
+
+        '''
         #provisorio so pra encher tabela! kkk
         for n in range(50):
             self.tabela.insert('', 'end', text=n, values=(str(n+1).zfill(2), 10+n,'MAC'+str(n).zfill(2), 'VENDOR'+str(n), "Hosrname"+str(n), "Ports"+str(n)), tags=("par" if n%2 == 0 else "impar",) )
+        '''
         self.tabela.tag_configure("par", background=self._agua)
         self.tabela.tag_configure("impar", background=self._branco)
 
@@ -171,33 +186,36 @@ class FramePrincipal(Frame):
     
     def btnSave(self):
         print("Save")
+        print(self.scan('10.0.1.100'))
 
     #--------------------------------------------------
     #--- Funções do scaner ----------------------------
     #--------------------------------------------------
 
     def scan(self, ip):
-        self.progress["value"] +=1
+        print("start scan %s" %ip)
+        #self.progress["value"] +=1
         ping = "ping -n 1 -i 1 -w 500 " + str(ip)
         if os.system(ping) == 0:
             #Mac Address
             try:
                 macaddress = get_mac_address(ip=str(ip))
-                vendor = vendorDataTable[macaddress[:9].replace(":", "").upper()]
+                vendor = self._vendorList[macaddress[:9].replace(":", "").upper()]
             except:
                 macaddress = None
                 vendor = None
 
             #Host Name
             try:
-                hostname = socket.gethostbyaddr("10.0.1." + str(n))
+                hostname = socket.gethostbyaddr(str(ip))[0]
             except:
                 hostname = None
                 print("erro ao tentar resolver hostName")
-            if macaddress:
-                return ip, macaddress, vendor, hostname
-            else:
-                return
+
+            return ip, macaddress, vendor, hostname
+        else:
+            return
+        
 
     def montaListaIp(self, startIP, endIP):
         try:
@@ -212,18 +230,21 @@ class FramePrincipal(Frame):
         except socket.error:
             print("END IP NOT VALID")
             return
+        qtd = int(ipaddress.IPv4Address(endIP)) - int(ipaddress.IPv4Address(startIP)) + 1
+        self.progress["maximum"] = int(qtd)
+        l=[]
+        for n in range(qtd):
+            l.append(str(start[0]) + "." + str(start[1]) + "." + str(start[2]) + "." + str(n+1))
+        print(l)
+        return l
+
 
 
     def multiThreadScan(self, ipRange):
-        
-        i=[]
-        for n in range(254): 
-                i.append("10.0.1." + str(n))
-                
-        pool = ThreadPool() 
-        result = pool.map(scan, i) 
+        print("Start Multithread")
+        pool = ThreadPool(4) 
+        result = pool.map(self.scan, ipRange) 
         pool.close() 
-        count = 0
         return result
 
 def main():
