@@ -2,20 +2,10 @@ from tkinter import *
 from tkinter import filedialog
 
 class FramePortScan(Frame):
-    
-    #Cores
-    _cinza = "#d9d9d9"
-    _preto = "#000000"
-    _branco = "#FFFFFF"
-    _marinho = "#101E63"
-    _agua = "#f2f7ff"
+
 
     #Fontes
-    _font1 = "Tahoma 9 "
     _font2 = "Tahoma 10"
-    _font3 = "Tahoma 13"
-    _font4 = "Tahoma 18"
-    _font5 = "Tahoma 13 Bold"
 
     def __init__(self, master=None):
         
@@ -82,8 +72,6 @@ class FramePortScan(Frame):
         else:
             print("JSON")
         print(caminho)
-
-    
 
 def main():
     app = FramePortScan()

@@ -8,8 +8,8 @@ import ipaddress
 import socket
 import json
 import os
-
-
+import SaveGUI as save
+import PortScanGUI as pscan
 
 class FramePrincipal(Frame):
     
@@ -34,6 +34,12 @@ class FramePrincipal(Frame):
 
     _datatable = []
 
+    try: 
+        hostName = socket.gethostname() 
+        hostIP = socket.gethostbyname(hostName)  
+    except: 
+        print("Unable to get Hostname and IP")
+
     #vendor list
     f = open("MacAddressVendor.json", "r")
     _vendorList = json.load(f)
@@ -49,7 +55,7 @@ class FramePrincipal(Frame):
         super().__init__()
         self.master.iconbitmap("Icons/NetLan Scanner.ico")
         self.centralizar(900,300) #(900, 600)
-        self.master.title("Net Lan Scanner    *V" + str(self._version))
+        self.master.title("Net Lan Scanner   >" + str(self.hostIP) + " " + str(self.hostName) + "<   "+ "*V" + str(self._version))
         self.master.resizable(True, True)
         self.master.minsize(width=900, height=300) #(width=900, height=300)
         self.master["bg"] = self._branco
@@ -59,12 +65,12 @@ class FramePrincipal(Frame):
         self.frameBtns = Frame( bg=self._marinho, height=80)
         self.frameBtns.pack(side=TOP,fill=X) 
 
-        self.btnScan = Button(self.frameBtns, width=78, height=30, command=self.btnScan)
+        self.btnScan = Button(self.frameBtns, width=78, height=30, command=self.funcBtnScan)
         self.imgScan = PhotoImage(file="Icons/Scan.png")
         self.btnScan.config(image=self.imgScan)
         self.btnScan.pack(side=LEFT, padx=5, pady=10)  
 
-        self.btnClear = Button(self.frameBtns, width=78, height=30, command=self.btnClear)
+        self.btnClear = Button(self.frameBtns, width=78, height=30, command=self.funcBtnClear)
         self.imgClear = PhotoImage(file="Icons/Clear2.png")
         self.btnClear.config(image=self.imgClear)
         self.btnClear.pack(side=LEFT, padx=5, pady=10)
@@ -85,15 +91,15 @@ class FramePrincipal(Frame):
 
         self.getLocalIP()
     
-        self.btnPort = Button(self.frameBtns, width=78, height=30, command=self.btnPort)
+        self.btnPort = Button(self.frameBtns, width=78, height=30, command=self.funcBtnPort)
         self.imgPort = PhotoImage(file="Icons/Port.png")
         self.btnPort.config(image=self.imgPort)
         self.btnPort.pack(side=LEFT, padx=5, pady=10)
 
-        self.progress = ttk.Progressbar(self.frameBtns, orient="horizontal", length=132, mode="determinate")
+        self.progress = ttk.Progressbar(self.frameBtns, orient="horizontal", length=132, mode="indeterminate")
         self.progress.pack(side=LEFT, padx=5, pady=10)
 
-        self.btnSave = Button(self.frameBtns, width=78, height=30, command=self.btnSave)
+        self.btnSave = Button(self.frameBtns, width=78, height=30, command=self.funcBtnSave)
         self.imgSave = PhotoImage(file="Icons/Save.png")
         self.btnSave.config(image=self.imgSave)
         self.btnSave.pack(side=LEFT, padx=5, pady=10)
@@ -143,10 +149,6 @@ class FramePrincipal(Frame):
     def getLocalIP(self):
         self.startIPaddr.set(socket.gethostbyname(socket.gethostname()))
         try: 
-            self.hostName = socket.gethostname() 
-            self.hostIP = socket.gethostbyname(self.hostName) 
-            print("Hostname :  ", self.hostName) 
-            print("IP : ", self.hostIP)
             ipRange= self.hostIP.split(".")
             self.startIPaddr.set(".".join(ipRange[:3])+".1")
             self.endIPaddr.set(".".join(ipRange[:3])+".254") 
@@ -154,12 +156,13 @@ class FramePrincipal(Frame):
             print("Unable to get Hostname and IP")
 
 
-    def btnClear(self):
-        self.progress["value"] = 0
+    def funcBtnClear(self):
         for i in self.tabela.get_children():
             self.tabela.delete(i)
 
-    def btnScan(self):
+    def funcBtnScan(self):
+        self.funcBtnClear()
+        
         l = self.montaListaIp(self.startIPaddr.get(), self.endIPaddr.get())
         if l == None: 
             return
@@ -181,12 +184,15 @@ class FramePrincipal(Frame):
         self.tabela.tag_configure("par", background=self._agua)
         self.tabela.tag_configure("impar", background=self._branco)
 
-    def btnPort(self):
+
+    def funcBtnPort(self):
         print("Port")
+        print(self.tabela.get_children())
+        
     
-    def btnSave(self):
+    def funcBtnSave(self):
         print("Save")
-        print(self.scan('10.0.1.100'))
+        self.app = save.main("teste")
 
     #--------------------------------------------------
     #--- Funções do scaner ----------------------------
@@ -194,8 +200,8 @@ class FramePrincipal(Frame):
 
     def scan(self, ip):
         print("start scan %s" %ip)
-        #self.progress["value"] +=1
         ping = "ping -n 1 -i 1 -w 500 " + str(ip)
+        
         if os.system(ping) == 0:
             #Mac Address
             try:
@@ -231,11 +237,13 @@ class FramePrincipal(Frame):
             print("END IP NOT VALID")
             return
         qtd = int(ipaddress.IPv4Address(endIP)) - int(ipaddress.IPv4Address(startIP)) + 1
-        self.progress["maximum"] = int(qtd)
         l=[]
+        for i in range(3):
+            l.append(str(start[0]) + "." + str(start[1]) + "." + str(start[2]) + ".255")
+       
         for n in range(qtd):
             l.append(str(start[0]) + "." + str(start[1]) + "." + str(start[2]) + "." + str(n+1))
-        print(l)
+        
         return l
 
 
