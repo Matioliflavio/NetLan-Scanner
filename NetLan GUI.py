@@ -55,7 +55,7 @@ class FramePrincipal(Frame):
         super().__init__()
         self.master.iconbitmap("Icons/NetLan Scanner.ico")
         self.centralizar(900,300) #(900, 600)
-        self.master.title("Net Lan Scanner   >" + str(self.hostIP) + " " + str(self.hostName) + "<   "+ "*V" + str(self._version))
+        self.master.title("Net Lan Scanner   >" + str(self.hostIP) + " - " + str(self.hostName) + "<   "+ "*V" + str(self._version))
         self.master.resizable(True, True)
         self.master.minsize(width=900, height=300) #(width=900, height=300)
         self.master["bg"] = self._branco
@@ -200,7 +200,7 @@ class FramePrincipal(Frame):
 
     def scan(self, ip):
         print("start scan %s" %ip)
-        ping = "ping -n 1 -i 1 -w 500 " + str(ip)
+        ping = "ping -n 1 -i 1 -w 1000 " + str(ip)
         
         if os.system(ping) == 0:
             #Mac Address
@@ -217,7 +217,11 @@ class FramePrincipal(Frame):
             except:
                 hostname = None
                 print("erro ao tentar resolver hostName")
-
+            '''
+            self.tabela.insert('', 'end', text=n, values=(str(count).zfill(2), ip,  macaddress, vendor, hostname), tags=("par" if count % 2 == 0 else "impar",) )
+            self.tabela.tag_configure("par", background=self._agua)
+            self.tabela.tag_configure("impar", background=self._branco)
+            '''
             return ip, macaddress, vendor, hostname
         else:
             return
@@ -250,7 +254,7 @@ class FramePrincipal(Frame):
 
     def multiThreadScan(self, ipRange):
         print("Start Multithread")
-        pool = ThreadPool(4) 
+        pool = ThreadPool(40) 
         result = pool.map(self.scan, ipRange) 
         pool.close() 
         return result
