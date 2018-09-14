@@ -77,4 +77,4 @@ def main():
     app = FramePortScan()
     app.mainloop()
 
-main()
+#main()

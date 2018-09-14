@@ -10,6 +10,7 @@ import json
 import os
 import SaveGUI as save
 import PortScanGUI as pscan
+import struct
 
 class FramePrincipal(Frame):
     
@@ -96,7 +97,7 @@ class FramePrincipal(Frame):
         self.btnPort.config(image=self.imgPort)
         self.btnPort.pack(side=LEFT, padx=5, pady=10)
 
-        self.progress = ttk.Progressbar(self.frameBtns, orient="horizontal", length=132, mode="indeterminate")
+        self.progress = ttk.Progressbar(self.frameBtns, orient="horizontal", length=132, mode="determinate")
         self.progress.pack(side=LEFT, padx=5, pady=10)
 
         self.btnSave = Button(self.frameBtns, width=78, height=30, command=self.funcBtnSave)
@@ -168,21 +169,9 @@ class FramePrincipal(Frame):
             return
         else:
             result = self.multiThreadScan(l)
-            print(result)
-        if result:
-            count = 1
-            for n in result:
-                if n:
-                    self.tabela.insert('', 'end', text=n, values=(str(count).zfill(2), n[0],  n[1], n[2], n[3]), tags=("par" if count % 2 == 0 else "impar",) )
-                    count += 1
 
-        '''
-        #provisorio so pra encher tabela! kkk
-        for n in range(50):
-            self.tabela.insert('', 'end', text=n, values=(str(n+1).zfill(2), 10+n,'MAC'+str(n).zfill(2), 'VENDOR'+str(n), "Hosrname"+str(n), "Ports"+str(n)), tags=("par" if n%2 == 0 else "impar",) )
-        '''
-        self.tabela.tag_configure("par", background=self._agua)
-        self.tabela.tag_configure("impar", background=self._branco)
+        if result:
+            self.printTable(result)
 
 
     def funcBtnPort(self):
@@ -200,8 +189,7 @@ class FramePrincipal(Frame):
 
     def scan(self, ip):
         print("start scan %s" %ip)
-        ping = "ping -n 1 -i 1 -w 1000 " + str(ip)
-        
+        ping = "ping -n 1 -i 1 -w 750 " + str(ip)
         if os.system(ping) == 0:
             #Mac Address
             try:
@@ -217,11 +205,7 @@ class FramePrincipal(Frame):
             except:
                 hostname = None
                 print("erro ao tentar resolver hostName")
-            '''
-            self.tabela.insert('', 'end', text=n, values=(str(count).zfill(2), ip,  macaddress, vendor, hostname), tags=("par" if count % 2 == 0 else "impar",) )
-            self.tabela.tag_configure("par", background=self._agua)
-            self.tabela.tag_configure("impar", background=self._branco)
-            '''
+
             return ip, macaddress, vendor, hostname
         else:
             return
@@ -236,28 +220,39 @@ class FramePrincipal(Frame):
             return
         try:
             socket.inet_aton(endIP)
-            end = endIP.split(".")
         except socket.error:
             print("END IP NOT VALID")
             return
-        qtd = int(ipaddress.IPv4Address(endIP)) - int(ipaddress.IPv4Address(startIP)) + 1
+        #qtd = int(ipaddress.IPv4Address(endIP)) - int(ipaddress.IPv4Address(startIP)) + 1
         l=[]
-        for i in range(3):
+        #adiciona uns broadcast pra melhorar o resultado?!
+        for i in range(2):
             l.append(str(start[0]) + "." + str(start[1]) + "." + str(start[2]) + ".255")
        
-        for n in range(qtd):
-            l.append(str(start[0]) + "." + str(start[1]) + "." + str(start[2]) + "." + str(n+1))
-        
+        start = struct.unpack('>I', socket.inet_aton(startIP))[0]
+        end = struct.unpack('>I', socket.inet_aton(endIP))[0]
+        for i in range(start, end):
+            l.append(socket.inet_ntoa(struct.pack('>I', i)))
+        l.append(endIP)
         return l
-
 
 
     def multiThreadScan(self, ipRange):
         print("Start Multithread")
-        pool = ThreadPool(40) 
+        pool = ThreadPool(50) 
         result = pool.map(self.scan, ipRange) 
         pool.close() 
         return result
+
+
+    def printTable(self, data):
+        count = 1
+        for n in data:
+            if n:
+                self.tabela.insert('', 'end', text=n, values=(str(count).zfill(2), n[0],  n[1], n[2], n[3]), tags=("par" if count % 2 == 0 else "impar",) )
+                count += 1
+        self.tabela.tag_configure("par", background=self._agua)
+        self.tabela.tag_configure("impar", background=self._branco)
 
 def main():
     app = FramePrincipal()
