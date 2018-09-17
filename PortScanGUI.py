@@ -1,18 +1,15 @@
 from tkinter import *
 
+#Classe incorporado no main app
+#não é mais necessario esse arquivo
+
 class FramePortScan(Frame):
     
-
-
     #Fontes
     _font1 = "Tahoma 9 "
     _font2 = "Tahoma 10"
 
     def __init__(self, master=None):
-        
-        #------------------------
-        #-------- Janela --------
-        #------------------------
 
         super().__init__()
         self.master.iconbitmap("Icons/NetLan Scanner.ico")
@@ -22,7 +19,7 @@ class FramePortScan(Frame):
         self.pack()
 
         #--cluster radio 1
-        self.frameRd1 = Frame()
+        self.frameRd1 = Frame(self.master)
         self.frameRd1.pack(side=TOP,fill=X) 
         self.var = StringVar()
         self.commomRd = Radiobutton(self.frameRd1, text="Scan Common Ports", variable=self.var, value="Common", command=self.radioselect, font=self._font2)
@@ -30,19 +27,19 @@ class FramePortScan(Frame):
         self.var.set("Common")
 
         #--cluster radio 2
-        self.frameRd2 = Frame()
+        self.frameRd2 = Frame(self.master)
         self.frameRd2.pack(side=TOP,fill=X) 
         self.commomRd = Radiobutton(self.frameRd2, text="Scan All Ports", variable=self.var, value="All", command=self.radioselect, font=self._font2)
         self.commomRd.pack(side=LEFT)
 
         #--cluster radio 3
-        self.frameRd3 = Frame()
+        self.frameRd3 = Frame(self.master)
         self.frameRd3.pack(side=TOP,fill=X) 
         self.commomRd = Radiobutton(self.frameRd3, text="Scan slected port range:", variable=self.var, value="Range", command=self.radioselect, font=self._font2)
         self.commomRd.pack(side=LEFT)
         
 
-        self.frameRange = Frame()
+        self.frameRange = Frame(self.master)
         self.frameRange.pack(side=TOP, fill=X)
         self.endtPort = Entry(self.frameRange, width=10, state=DISABLED, font=self._font2)
         self.endtPort.pack(side=RIGHT, padx=5)
@@ -57,7 +54,7 @@ class FramePortScan(Frame):
         
 
         #--cluster botoes
-        self.frameBtn = Frame()
+        self.frameBtn = Frame(self.master)
         self.frameBtn.pack(side=TOP, fill=X)
         self.btnCancel = Button(self.frameBtn, text="Cancel", width=10, command=self.cancel, font=self._font2)
         self.btnCancel.pack(side=RIGHT, padx=10, pady=10)

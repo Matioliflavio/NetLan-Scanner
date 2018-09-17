@@ -7,9 +7,8 @@ from getmac import get_mac_address
 import ipaddress
 import socket
 import json
+import csv
 import os
-import SaveGUI as save
-import PortScanGUI as pscan
 import struct
 
 class FramePrincipal(Frame):
@@ -29,11 +28,11 @@ class FramePrincipal(Frame):
     _font5 = "Tahoma 13 Bold"
 
     #Strings
-    _version = "0.11b"
+    _version = "0.20b"
 
     _columns = ('IP', 'Macaddress', 'Vendor', 'Hostname', 'Ports')
 
-    _datatable = []
+    scanResult = []
 
     try: 
         hostName = socket.gethostname() 
@@ -56,7 +55,7 @@ class FramePrincipal(Frame):
         super().__init__()
         self.master.iconbitmap("Icons/NetLan Scanner.ico")
         self.centralizar(900,300) #(900, 600)
-        self.master.title("Net Lan Scanner   >" + str(self.hostIP) + " - " + str(self.hostName) + "<   "+ "*V" + str(self._version))
+        self.master.title("Net Lan Scanner   >" + str(self.hostIP) + " - " + str(self.hostName) + " <   "+ "*V" + str(self._version))
         self.master.resizable(True, True)
         self.master.minsize(width=900, height=300) #(width=900, height=300)
         self.master["bg"] = self._branco
@@ -147,6 +146,9 @@ class FramePrincipal(Frame):
             tv.move(k, '', index)
         tv.heading(col, command=lambda: self.sort_column(tv, col, not reverse))
     
+    def exibirMensagem(self, title, msg):
+        mbox.showinfo(title, msg)
+    
     def getLocalIP(self):
         self.startIPaddr.set(socket.gethostbyname(socket.gethostname()))
         try: 
@@ -156,8 +158,8 @@ class FramePrincipal(Frame):
         except: 
             print("Unable to get Hostname and IP")
 
-
     def funcBtnClear(self):
+        self.scanResult.clear()
         for i in self.tabela.get_children():
             self.tabela.delete(i)
 
@@ -173,23 +175,26 @@ class FramePrincipal(Frame):
         if result:
             self.printTable(result)
 
-
     def funcBtnPort(self):
         print("Port")
-        print(self.tabela.get_children())
-        
-    
+        lista= "10.0.1.2"
+        self.janelaPort = Toplevel(self.master)
+        self.appPort = FramePortScan(self.janelaPort, lista)
+
     def funcBtnSave(self):
         print("Save")
-        self.app = save.main("teste")
-
+        if self.scanResult:
+            self.janelaSave = Toplevel(self.master)
+            self.appSave = FrameSave(self.janelaSave, self.scanResult)
+        else:
+            self.exibirMensagem("Atention", "Start scan before save results!")
     #--------------------------------------------------
     #--- Funções do scaner ----------------------------
     #--------------------------------------------------
 
     def scan(self, ip):
         print("start scan %s" %ip)
-        ping = "ping -n 1 -i 1 -w 750 " + str(ip)
+        ping = "ping -n 1 -i 1 -w 1000 " + str(ip)
         if os.system(ping) == 0:
             #Mac Address
             try:
@@ -208,8 +213,7 @@ class FramePrincipal(Frame):
 
             return ip, macaddress, vendor, hostname
         else:
-            return
-        
+            return    
 
     def montaListaIp(self, startIP, endIP):
         try:
@@ -217,11 +221,13 @@ class FramePrincipal(Frame):
             start = startIP.split(".")
         except socket.error:
             print("StartIP NOT VALID")
+            self.exibirMensagem("Scan Error", "Check Start IP. \nIt´s not valid IP address!")
             return
         try:
             socket.inet_aton(endIP)
         except socket.error:
             print("END IP NOT VALID")
+            self.exibirMensagem("Scan Error", "Check End IP. \n It´s not valid IP address!")
             return
         #qtd = int(ipaddress.IPv4Address(endIP)) - int(ipaddress.IPv4Address(startIP)) + 1
         l=[]
@@ -236,7 +242,6 @@ class FramePrincipal(Frame):
         l.append(endIP)
         return l
 
-
     def multiThreadScan(self, ipRange):
         print("Start Multithread")
         pool = ThreadPool(50) 
@@ -244,15 +249,221 @@ class FramePrincipal(Frame):
         pool.close() 
         return result
 
-
     def printTable(self, data):
         count = 1
         for n in data:
             if n:
+                ip = {}
+                ip["id"] = str(count).zfill(2)
+                ip["IP"] = n[0]
+                ip["MacAdrress"] = n[1]
+                ip["Vendor"] = n[2]
+                ip["Hostname"] = n[3]
+                self.scanResult.append(ip)
                 self.tabela.insert('', 'end', text=n, values=(str(count).zfill(2), n[0],  n[1], n[2], n[3]), tags=("par" if count % 2 == 0 else "impar",) )
                 count += 1
         self.tabela.tag_configure("par", background=self._agua)
         self.tabela.tag_configure("impar", background=self._branco)
+        self.exibirMensagem("Done", "Scan Complete!")
+        print(self.scanResult)
+
+
+
+
+class FrameSave(Frame):
+
+    #Fontes
+    _font2 = "Tahoma 10"
+
+    def __init__(self, master, data):
+        
+        super().__init__()
+        self.data = data
+        self.master = master
+        #self.master.geometry("300x125")
+        self.centralizar(300,125)
+        self.master.resizable(False,False)
+        self.master.iconbitmap("Icons/NetLan Scanner.ico")
+        self.master.title("Save")
+        self.pack()
+
+        #--cluster radio 1
+        self.frameRd1 = Frame(self.master)
+        self.frameRd1.pack(side=TOP,fill=X) 
+        self.var = StringVar()
+        self.txtRd = Radiobutton(self.frameRd1, text="Save as TXT", variable=self.var, value="txt", command=self.radioselect, font=self._font2)
+        self.txtRd.pack(side=LEFT, padx=10)
+        self.var.set("txt")
+
+        #--cluster radio 2
+        self.frameRd2 = Frame(self.master)
+        self.frameRd2.pack(side=TOP,fill=X) 
+        self.csvRd = Radiobutton(self.frameRd2, text="Save as CSV", variable=self.var, value="csv", command=self.radioselect, font=self._font2)
+        self.csvRd.pack(side=LEFT, padx=10)
+
+        #--cluster radio 3
+        self.frameRd3 = Frame(self.master)
+        self.frameRd3.pack(side=TOP,fill=X) 
+        self.jsonRd = Radiobutton(self.frameRd3, text="Save as JSON", variable=self.var, value="json", command=self.radioselect, font=self._font2)
+        self.jsonRd.pack(side=LEFT, padx=10)
+
+        #--cluster botoes
+        self.frameBtn = Frame(self.master)
+        self.frameBtn.pack(side=TOP, fill=X)
+        self.btnCancel = Button(self.frameBtn, text="Cancel", width=10, command=self.cancel, font=self._font2)
+        self.btnCancel.pack(side=RIGHT, padx=10, pady=10)
+        
+        self.btnOK = Button(self.frameBtn, text="OK", width=10, command=self.ok, font=self._font2)
+        self.btnOK.pack(side=RIGHT, padx=10)
+
+
+    def radioselect(self):
+        print("Item: %s" %self.var.get())
+
+    
+    def centralizar(self, larg, alt):
+        px=int((self.master.winfo_screenwidth()-larg)/2)
+        py=int((self.master.winfo_screenheight()-alt)/2)
+        self.master.geometry("{}x{}+{}+{}".format(larg, alt, px, py))
+
+    def cancel(self):
+        self.master.destroy()
+    
+    def ok(self):
+        print("ok")
+        caminho = filedialog.askdirectory()
+        if self.var.get()=="txt":
+            print("txt")
+            f = open(caminho + os.sep + "ScanResult.txt", "w")
+            for id, ip, mac, vendor, host in self.data:
+                f.writelines(id + " " + ip + " " +  mac + " " +  vendor + " " +  host)
+            f.close()
+
+        elif self.var.get()=="csv":
+            print("csv")
+            f = open(caminho + os.sep + "ScanResult.csv", "w")
+            writer = csv.writer(f, delimiter=";")
+            for n in self.data:
+                writer.writerow(n)
+            f.close()
+        else:
+            print("JSON")
+            f = open(caminho + os.sep + "ScanResult.json", "w")
+            json.dump(self.data, f, sort_keys=True, indent=4)
+            f.close()
+
+        mbox.showinfo("Export", "File Saved!")        
+        self.master.destroy()
+
+
+
+class FramePortScan(Frame):
+    
+    #Fontes
+    _font1 = "Tahoma 9 "
+    _font2 = "Tahoma 10"
+
+    _Range = [21, 22, 23, 80, 443, 3389]
+
+    def __init__(self, master, data):
+
+        super().__init__()
+        self.data = data
+        self.master = master
+        self.master.iconbitmap("Icons/NetLan Scanner.ico")
+        self.centralizar(320,150)
+        self.master.title("Port Scan")
+        self.master.resizable(False, False)
+        self.pack()
+
+        #--cluster radio 1
+        self.frameRd1 = Frame(self.master)
+        self.frameRd1.pack(side=TOP,fill=X) 
+        self.var = StringVar()
+        self.commomRd = Radiobutton(self.frameRd1, text="Scan Common Ports", variable=self.var, value="Common", command=self.radioselect, font=self._font2)
+        self.commomRd.pack(side=LEFT)
+        self.var.set("Common")
+
+        #--cluster radio 2
+        self.frameRd2 = Frame(self.master)
+        self.frameRd2.pack(side=TOP,fill=X) 
+        self.commomRd = Radiobutton(self.frameRd2, text="Scan All Ports", variable=self.var, value="All", command=self.radioselect, font=self._font2)
+        self.commomRd.pack(side=LEFT)
+
+        #--cluster radio 3
+        self.frameRd3 = Frame(self.master)
+        self.frameRd3.pack(side=TOP,fill=X) 
+        self.commomRd = Radiobutton(self.frameRd3, text="Scan slected port range:", variable=self.var, value="Range", command=self.radioselect, font=self._font2)
+        self.commomRd.pack(side=LEFT)
+        
+        self.frameRange = Frame(self.master)
+        self.frameRange.pack(side=TOP, fill=X)
+        self.endPort = Entry(self.frameRange, width=10, state=DISABLED, font=self._font2)
+        self.endPort.pack(side=RIGHT, padx=5)
+
+        self.lblTo = Label(self.frameRange, text=" to ", font=self._font2)
+        self.lblTo.pack(side=RIGHT)
+
+        self.startPort = Entry(self.frameRange, width=10, state=DISABLED, font=self._font2)
+        self.startPort.pack(side=RIGHT, padx=5)
+        self.lblp = Label(self.frameRange, text="min= 0 max= 48151", font=self._font1)
+        self.lblp.pack(side=LEFT, padx=5)
+        
+        #--cluster botoes
+        self.frameBtn = Frame(self.master)
+        self.frameBtn.pack(side=TOP, fill=X)
+        self.btnCancel = Button(self.frameBtn, text="Cancel", width=10, command=self.cancel, font=self._font2)
+        self.btnCancel.pack(side=RIGHT, padx=10, pady=10)
+        
+        self.btnOK = Button(self.frameBtn, text="OK", width=10, command=self.ok, font=self._font2)
+        self.btnOK.pack(side=RIGHT, padx=10)
+
+    def radioselect(self):
+        print("Item: %s" %self.var.get())
+        if self.var.get()=="Range":
+            self.startPort["state"]= NORMAL
+            self.endPort["state"]= NORMAL
+        else:
+            self.startPort["state"]= DISABLED
+            self.endPort["state"]= DISABLED
+ 
+    def centralizar(self, larg, alt):
+        px=int((self.master.winfo_screenwidth()-larg)/2)
+        py=int((self.master.winfo_screenheight()-alt)/2)
+        self.master.geometry("{}x{}+{}+{}".format(larg, alt, px, py))
+
+    def cancel(self):
+        self.master.destroy()
+    
+    def ok(self):
+        print("ok")
+        result = None
+        if self.var.get()=="Range":
+            print("Range")
+            result = self.multiThreadScan(self._Range)
+        elif self.var.get()=="All":
+            print("All")
+        else:
+            print("Common")
+        
+        print(result)
+        self.master.destroy()
+
+
+    def portScan(self, port):
+        print(self.data)
+        try:
+            socket.connect(self.data, port)
+            return port
+        except:
+            return None
+
+    def multiThreadScan(self, portRange):
+        print("Start Multithread")
+        pool = ThreadPool(50) 
+        result = pool.map(self.portScan, portRange) 
+        pool.close() 
+        return result
 
 def main():
     app = FramePrincipal()

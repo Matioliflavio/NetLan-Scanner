@@ -1,8 +1,10 @@
 from tkinter import *
 from tkinter import filedialog
 
-class FramePortScan(Frame):
+#Classe incorporado no main app
+#não é mais necessario esse arquivo
 
+class FrameSave(Frame):
 
     #Fontes
     _font2 = "Tahoma 10"
@@ -15,7 +17,7 @@ class FramePortScan(Frame):
 
         super().__init__()
         self.master.iconbitmap("Icons/NetLan Scanner.ico")
-        self.centralizar(300,125)
+        #self.centralizar(300,125)
         self.master.title("Save")
         self.master.resizable(False, False)
         self.pack()
@@ -74,7 +76,7 @@ class FramePortScan(Frame):
         print(caminho)
 
 def main():
-    app = FramePortScan()
+    app = FrameSave()
     app.mainloop()
 
 #main()
