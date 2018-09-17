@@ -47,14 +47,10 @@ class FramePrincipal(Frame):
     f.close()
 
     def __init__(self, master=None):
-        
-        #------------------------
-        #-------- Janela --------
-        #------------------------
 
         super().__init__()
         self.master.iconbitmap("Icons/NetLan Scanner.ico")
-        self.centralizar(900,300) #(900, 600)
+        self.center(900,300) #(900, 600)
         self.master.title("Net Lan Scanner   >" + str(self.hostIP) + " - " + str(self.hostName) + " <   "+ "*V" + str(self._version))
         self.master.resizable(True, True)
         self.master.minsize(width=900, height=300) #(width=900, height=300)
@@ -134,7 +130,7 @@ class FramePrincipal(Frame):
     # ------------------------------------------------------------------------------------------
     #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> FUNÇÕES GERAIS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     # ------------------------------------------------------------------------------------------ 
-    def centralizar(self, larg, alt):
+    def center(self, larg, alt):
         px=int((self.master.winfo_screenwidth()-larg)/2)
         py=int((self.master.winfo_screenheight()-alt)/2)
         self.master.geometry("{}x{}+{}+{}".format(larg, alt, px, py))
@@ -146,7 +142,7 @@ class FramePrincipal(Frame):
             tv.move(k, '', index)
         tv.heading(col, command=lambda: self.sort_column(tv, col, not reverse))
     
-    def exibirMensagem(self, title, msg):
+    def showMsg(self, title, msg):
         mbox.showinfo(title, msg)
     
     def getLocalIP(self):
@@ -166,7 +162,7 @@ class FramePrincipal(Frame):
     def funcBtnScan(self):
         self.funcBtnClear()
         
-        l = self.montaListaIp(self.startIPaddr.get(), self.endIPaddr.get())
+        l = self.buildIpList(self.startIPaddr.get(), self.endIPaddr.get())
         if l == None: 
             return
         else:
@@ -187,7 +183,7 @@ class FramePrincipal(Frame):
             self.janelaSave = Toplevel(self.master)
             self.appSave = FrameSave(self.janelaSave, self.scanResult)
         else:
-            self.exibirMensagem("Atention", "Start scan before save results!")
+            self.showMsg("Atention", "Start scan before save results!")
     #--------------------------------------------------
     #--- Funções do scaner ----------------------------
     #--------------------------------------------------
@@ -215,19 +211,19 @@ class FramePrincipal(Frame):
         else:
             return    
 
-    def montaListaIp(self, startIP, endIP):
+    def buildIpList(self, startIP, endIP):
         try:
             socket.inet_aton(startIP)
             start = startIP.split(".")
         except socket.error:
             print("StartIP NOT VALID")
-            self.exibirMensagem("Scan Error", "Check Start IP. \nIt´s not valid IP address!")
+            self.showMsg("Scan Error", "Check Start IP. \nIt´s not valid IP address!")
             return
         try:
             socket.inet_aton(endIP)
         except socket.error:
             print("END IP NOT VALID")
-            self.exibirMensagem("Scan Error", "Check End IP. \n It´s not valid IP address!")
+            self.showMsg("Scan Error", "Check End IP. \n It´s not valid IP address!")
             return
         #qtd = int(ipaddress.IPv4Address(endIP)) - int(ipaddress.IPv4Address(startIP)) + 1
         l=[]
@@ -255,16 +251,16 @@ class FramePrincipal(Frame):
             if n:
                 ip = {}
                 ip["id"] = str(count).zfill(2)
-                ip["IP"] = n[0]
-                ip["MacAdrress"] = n[1]
-                ip["Vendor"] = n[2]
-                ip["Hostname"] = n[3]
+                ip["ip"] = n[0]
+                ip["macaddress"] = n[1]
+                ip["vendor"] = n[2]
+                ip["hostname"] = n[3]
                 self.scanResult.append(ip)
                 self.tabela.insert('', 'end', text=n, values=(str(count).zfill(2), n[0],  n[1], n[2], n[3]), tags=("par" if count % 2 == 0 else "impar",) )
                 count += 1
         self.tabela.tag_configure("par", background=self._agua)
         self.tabela.tag_configure("impar", background=self._branco)
-        self.exibirMensagem("Done", "Scan Complete!")
+        self.showMsg("Done", "Scan Complete!")
         print(self.scanResult)
 
 
@@ -281,7 +277,7 @@ class FrameSave(Frame):
         self.data = data
         self.master = master
         #self.master.geometry("300x125")
-        self.centralizar(300,125)
+        self.center(300,125)
         self.master.resizable(False,False)
         self.master.iconbitmap("Icons/NetLan Scanner.ico")
         self.master.title("Save")
@@ -321,7 +317,7 @@ class FrameSave(Frame):
         print("Item: %s" %self.var.get())
 
     
-    def centralizar(self, larg, alt):
+    def center(self, larg, alt):
         px=int((self.master.winfo_screenwidth()-larg)/2)
         py=int((self.master.winfo_screenheight()-alt)/2)
         self.master.geometry("{}x{}+{}+{}".format(larg, alt, px, py))
@@ -334,24 +330,37 @@ class FrameSave(Frame):
         caminho = filedialog.askdirectory()
         if self.var.get()=="txt":
             print("txt")
-            f = open(caminho + os.sep + "ScanResult.txt", "w")
-            for id, ip, mac, vendor, host in self.data:
-                f.writelines(id + " " + ip + " " +  mac + " " +  vendor + " " +  host)
-            f.close()
-
+            try:
+                f = open(caminho + os.sep + "ScanResult.txt", "w")
+                for iten in self.data:
+                    f.writelines("ID: " + str(iten["id"]) + 
+                                "\tIP: " + str(iten["ip"]) + 
+                                "\tMacAddress: " +  str(iten["macaddress"]) + 
+                                "\tVendor: " +  str(iten["vendor"]) + 
+                                "\tHostName: " +  str(iten["hostname"]) + "\n")
+                f.close()
+            except:
+                mbox.showinfo("Error", "Can´t save file!")
         elif self.var.get()=="csv":
             print("csv")
-            f = open(caminho + os.sep + "ScanResult.csv", "w")
-            writer = csv.writer(f, delimiter=";")
-            for n in self.data:
-                writer.writerow(n)
-            f.close()
+            try:
+                f = open(caminho + os.sep + "ScanResult.csv", "w")
+                columns = ["id", "ip", "macaddress", "vendor", "hostname"]
+                writer = csv.DictWriter(f, fieldnames=columns)
+                writer.writeheader()
+                for data in self.data:
+                    writer.writerow(data)
+                f.close()
+            except:
+                mbox.showinfo("Error", "Can´t save file!")
         else:
             print("JSON")
-            f = open(caminho + os.sep + "ScanResult.json", "w")
-            json.dump(self.data, f, sort_keys=True, indent=4)
-            f.close()
-
+            try:
+                f = open(caminho + os.sep + "ScanResult.json", "w")
+                json.dump(self.data, f, sort_keys=True, indent=4)
+                f.close()
+            except:
+                mbox.showinfo("Error", "Can´t save file!")
         mbox.showinfo("Export", "File Saved!")        
         self.master.destroy()
 
@@ -371,7 +380,7 @@ class FramePortScan(Frame):
         self.data = data
         self.master = master
         self.master.iconbitmap("Icons/NetLan Scanner.ico")
-        self.centralizar(320,150)
+        self.center(320,150)
         self.master.title("Port Scan")
         self.master.resizable(False, False)
         self.pack()
@@ -427,7 +436,7 @@ class FramePortScan(Frame):
             self.startPort["state"]= DISABLED
             self.endPort["state"]= DISABLED
  
-    def centralizar(self, larg, alt):
+    def center(self, larg, alt):
         px=int((self.master.winfo_screenwidth()-larg)/2)
         py=int((self.master.winfo_screenheight()-alt)/2)
         self.master.geometry("{}x{}+{}+{}".format(larg, alt, px, py))
