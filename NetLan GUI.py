@@ -173,9 +173,12 @@ class FramePrincipal(Frame):
 
     def funcBtnPort(self):
         print("Port")
-        lista= "10.0.1.2"
-        self.janelaPort = Toplevel(self.master)
-        self.appPort = FramePortScan(self.janelaPort, lista)
+        try:
+            ip = self.tabela.item(self.tabela.focus())["values"][1]
+            self.janelaPort = Toplevel(self.master)
+            self.appPort = FramePortScan(self.janelaPort, ip)
+        except:
+            self.showMsg("Error", "Select one item to scan ports!")
 
     def funcBtnSave(self):
         print("Save")
@@ -262,7 +265,6 @@ class FramePrincipal(Frame):
         self.tabela.tag_configure("impar", background=self._branco)
         self.showMsg("Done", "Scan Complete!")
         print(self.scanResult)
-
 
 
 
@@ -372,7 +374,10 @@ class FramePortScan(Frame):
     _font1 = "Tahoma 9 "
     _font2 = "Tahoma 10"
 
-    _Range = [21, 22, 23, 80, 443, 3389]
+    # 21 FTP / 22 SSH / 23 TELNET / 25 SMTP / 53 DNS / 80 HTTP / 110 POP3 / 115 SFTP / 135 RPC
+    # 139 NetBIOS / 143 IMAP / 194 IRC / 443 SSL / 445 SMB / 1433 MSSQL / 3306 MySQL / 3389 Remote Desktop
+    # 5632 PCAnywhere / 5900 VNC / 6112 Warcraft III  
+    _common = [21, 22, 23, 25, 53, 80, 110, 115, 135, 139, 143, 194, 443, 445, 1433, 3306, 3389, 5632, 5900, 6112]
 
     def __init__(self, master, data):
 
@@ -389,14 +394,14 @@ class FramePortScan(Frame):
         self.frameRd1 = Frame(self.master)
         self.frameRd1.pack(side=TOP,fill=X) 
         self.var = StringVar()
-        self.commomRd = Radiobutton(self.frameRd1, text="Scan Common Ports", variable=self.var, value="Common", command=self.radioselect, font=self._font2)
+        self.commomRd = Radiobutton(self.frameRd1, text="Scan Common Ports. 1 min", variable=self.var, value="Common", command=self.radioselect, font=self._font2)
         self.commomRd.pack(side=LEFT)
         self.var.set("Common")
 
         #--cluster radio 2
         self.frameRd2 = Frame(self.master)
         self.frameRd2.pack(side=TOP,fill=X) 
-        self.commomRd = Radiobutton(self.frameRd2, text="Scan All Ports", variable=self.var, value="All", command=self.radioselect, font=self._font2)
+        self.commomRd = Radiobutton(self.frameRd2, text="Scan All Ports.  5 min", variable=self.var, value="All", command=self.radioselect, font=self._font2)
         self.commomRd.pack(side=LEFT)
 
         #--cluster radio 3
@@ -449,27 +454,38 @@ class FramePortScan(Frame):
         result = None
         if self.var.get()=="Range":
             print("Range")
-            result = self.multiThreadScan(self._Range)
+            r = []
+            for i in range(int(self.startPort.get()), (int(self.endPort.get()) + 1)):
+                r.append(i)   
+            result = self.multiThreadScan(r)
         elif self.var.get()=="All":
             print("All")
+            allPorts = []
+            for n in range(48152):
+                allPorts.append(n)
+            result = self.multiThreadScan(allPorts)
         else:
             print("Common")
+            result = self.multiThreadScan(self._common)
         
         print(result)
+        for n in result:
+            if n:
+                print(n)
         self.master.destroy()
 
 
     def portScan(self, port):
-        print(self.data)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            socket.connect(self.data, port)
+            sock.connect((self.data, port))
             return port
         except:
             return None
 
     def multiThreadScan(self, portRange):
         print("Start Multithread")
-        pool = ThreadPool(50) 
+        pool = ThreadPool(1000) 
         result = pool.map(self.portScan, portRange) 
         pool.close() 
         return result
