@@ -1,4 +1,5 @@
 from tkinter import *
+import tkinter as tk
 from tkinter import filedialog
 import tkinter.ttk as ttk
 from tkinter import messagebox as mbox
@@ -33,6 +34,8 @@ class FramePrincipal(Frame):
     _columns = ('IP', 'Macaddress', 'Vendor', 'Hostname', 'Ports')
 
     scanResult = []
+
+    scannedPorts = []
 
     try: 
         hostName = socket.gethostname() 
@@ -77,6 +80,7 @@ class FramePrincipal(Frame):
         self.startIPaddr = StringVar()
         self.startIP = Entry(self.frameBtns, textvariable=self.startIPaddr, font=self._font3, width=14)
         self.startIP.pack(side=LEFT, padx=1, pady=10)
+        self.startIP.bind("<Return>", self.funcBtnScan)
 
         self.to = Label(self.frameBtns, text="to:", font=self._font3, bg=self._marinho, fg=self._branco)
         self.to.pack(side=LEFT, padx=1, pady=10)
@@ -84,6 +88,7 @@ class FramePrincipal(Frame):
         self.endIPaddr = StringVar()
         self.endIP = Entry(self.frameBtns, textvariable=self.endIPaddr, font=self._font3, width=14)
         self.endIP.pack(side=LEFT, padx=3, pady=10)
+        self.endIP.bind("<Return>", self.funcBtnScan)
 
         self.getLocalIP()
     
@@ -92,7 +97,9 @@ class FramePrincipal(Frame):
         self.btnPort.config(image=self.imgPort)
         self.btnPort.pack(side=LEFT, padx=5, pady=10)
 
-        self.progress = ttk.Progressbar(self.frameBtns, orient="horizontal", length=132, mode="determinate")
+        #self.progress = ttk.Progressbar(self.frameBtns, orient="horizontal", length=132, mode="determinate")
+        self.status = StringVar()
+        self.progress = Entry(self.frameBtns, textvariable=self.status, font=self._font3, width=14, state=DISABLED)
         self.progress.pack(side=LEFT, padx=5, pady=10)
 
         self.btnSave = Button(self.frameBtns, width=78, height=30, command=self.funcBtnSave)
@@ -156,12 +163,14 @@ class FramePrincipal(Frame):
 
     def funcBtnClear(self):
         self.scanResult.clear()
+        self.status.set("")
         for i in self.tabela.get_children():
             self.tabela.delete(i)
 
-    def funcBtnScan(self):
-        self.funcBtnClear()
+    def funcBtnScan(self, event=None):
         
+        self.funcBtnClear()
+        self.status.set("Scaning..Wait!")
         l = self.buildIpList(self.startIPaddr.get(), self.endIPaddr.get())
         if l == None: 
             return
@@ -170,15 +179,19 @@ class FramePrincipal(Frame):
 
         if result:
             self.printTable(result)
+        self.status.set("Done!")
 
     def funcBtnPort(self):
         print("Port")
+        port = None
         try:
+            print(self.tabela.item(self.tabela.focus())["values"])
             ip = self.tabela.item(self.tabela.focus())["values"][1]
-            self.janelaPort = Toplevel(self.master)
-            self.appPort = FramePortScan(self.janelaPort, ip)
+            port = FramePortScan(self, ip).show()
         except:
             self.showMsg("Error", "Select one item to scan ports!")
+        #if port:    
+        #    self.tabela.insert('', 'end', values=(self.tabela.item(self.tabela.focus())["values"], port))
 
     def funcBtnSave(self):
         print("Save")
@@ -266,7 +279,7 @@ class FramePrincipal(Frame):
         self.showMsg("Done", "Scan Complete!")
         print(self.scanResult)
 
-
+    
 
 class FrameSave(Frame):
 
@@ -379,19 +392,19 @@ class FramePortScan(Frame):
     # 5632 PCAnywhere / 5900 VNC / 6112 Warcraft III  
     _common = [21, 22, 23, 25, 53, 80, 110, 115, 135, 139, 143, 194, 443, 445, 1433, 3306, 3389, 5632, 5900, 6112]
 
+    _portResult = []
+
     def __init__(self, master, data):
 
-        super().__init__()
         self.data = data
-        self.master = master
-        self.master.iconbitmap("Icons/NetLan Scanner.ico")
+        self.toplevel = tk.Toplevel(master)
         self.center(320,150)
-        self.master.title("Port Scan")
-        self.master.resizable(False, False)
-        self.pack()
-
+        self.toplevel.iconbitmap(bitmap="Icons/NetLan Scanner.ico")
+        self.toplevel.title("Port Scan")
+        self.toplevel.resizable(False, False)
+        
         #--cluster radio 1
-        self.frameRd1 = Frame(self.master)
+        self.frameRd1 = Frame(self.toplevel)
         self.frameRd1.pack(side=TOP,fill=X) 
         self.var = StringVar()
         self.commomRd = Radiobutton(self.frameRd1, text="Scan Common Ports. 1 min", variable=self.var, value="Common", command=self.radioselect, font=self._font2)
@@ -399,18 +412,18 @@ class FramePortScan(Frame):
         self.var.set("Common")
 
         #--cluster radio 2
-        self.frameRd2 = Frame(self.master)
+        self.frameRd2 = Frame(self.toplevel)
         self.frameRd2.pack(side=TOP,fill=X) 
         self.commomRd = Radiobutton(self.frameRd2, text="Scan All Ports.  5 min", variable=self.var, value="All", command=self.radioselect, font=self._font2)
         self.commomRd.pack(side=LEFT)
 
         #--cluster radio 3
-        self.frameRd3 = Frame(self.master)
+        self.frameRd3 = Frame(self.toplevel)
         self.frameRd3.pack(side=TOP,fill=X) 
         self.commomRd = Radiobutton(self.frameRd3, text="Scan slected port range:", variable=self.var, value="Range", command=self.radioselect, font=self._font2)
         self.commomRd.pack(side=LEFT)
         
-        self.frameRange = Frame(self.master)
+        self.frameRange = Frame(self.toplevel)
         self.frameRange.pack(side=TOP, fill=X)
         self.endPort = Entry(self.frameRange, width=10, state=DISABLED, font=self._font2)
         self.endPort.pack(side=RIGHT, padx=5)
@@ -424,13 +437,18 @@ class FramePortScan(Frame):
         self.lblp.pack(side=LEFT, padx=5)
         
         #--cluster botoes
-        self.frameBtn = Frame(self.master)
+        self.frameBtn = Frame(self.toplevel)
         self.frameBtn.pack(side=TOP, fill=X)
         self.btnCancel = Button(self.frameBtn, text="Cancel", width=10, command=self.cancel, font=self._font2)
         self.btnCancel.pack(side=RIGHT, padx=10, pady=10)
         
         self.btnOK = Button(self.frameBtn, text="OK", width=10, command=self.ok, font=self._font2)
         self.btnOK.pack(side=RIGHT, padx=10)
+
+    def center(self, larg, alt):
+        px=int((self.toplevel.winfo_screenwidth()-larg)/2)
+        py=int((self.toplevel.winfo_screenheight()-alt)/2)
+        self.toplevel.geometry("{}x{}+{}+{}".format(larg, alt, px, py))
 
     def radioselect(self):
         print("Item: %s" %self.var.get())
@@ -440,14 +458,9 @@ class FramePortScan(Frame):
         else:
             self.startPort["state"]= DISABLED
             self.endPort["state"]= DISABLED
- 
-    def center(self, larg, alt):
-        px=int((self.master.winfo_screenwidth()-larg)/2)
-        py=int((self.master.winfo_screenheight()-alt)/2)
-        self.master.geometry("{}x{}+{}+{}".format(larg, alt, px, py))
 
     def cancel(self):
-        self.master.destroy()
+        self.toplevel.destroy()
     
     def ok(self):
         print("ok")
@@ -471,8 +484,9 @@ class FramePortScan(Frame):
         print(result)
         for n in result:
             if n:
-                print(n)
-        self.master.destroy()
+                self._portResult.append(n)
+        print(self._portResult)
+        self.toplevel.destroy()
 
 
     def portScan(self, port):
@@ -489,6 +503,14 @@ class FramePortScan(Frame):
         result = pool.map(self.portScan, portRange) 
         pool.close() 
         return result
+
+    def show(self):
+        self.toplevel.deiconify()
+        self.toplevel.wait_window()
+        value = self._portResult
+        print("show")
+        print(value)
+        return value
 
 def main():
     app = FramePrincipal()
