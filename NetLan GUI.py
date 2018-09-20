@@ -12,6 +12,8 @@ import csv
 import os
 import struct
 
+#before to start, install lib getmac: pip install get-mac
+
 class FramePrincipal(Frame):
     
     #Cores
@@ -29,9 +31,11 @@ class FramePrincipal(Frame):
     _font5 = "Tahoma 13 Bold"
 
     #Strings
-    _version = "0.20b"
+    _version = "0.40b"
 
     _columns = ('IP', 'Macaddress', 'Vendor', 'Hostname', 'Ports')
+
+    listCount = 1
 
     scanResult = []
 
@@ -154,6 +158,8 @@ class FramePrincipal(Frame):
     
     def getLocalIP(self):
         self.startIPaddr.set(socket.gethostbyname(socket.gethostname()))
+        if self.startIPaddr.get() == "127.0.0.1":
+            self.showMsg("Alert", "You aren´t connected to a network.\nVerify your conectcion!")
         try: 
             ipRange= self.hostIP.split(".")
             self.startIPaddr.set(".".join(ipRange[:3])+".1")
@@ -185,13 +191,14 @@ class FramePrincipal(Frame):
         print("Port")
         port = None
         try:
-            print(self.tabela.item(self.tabela.focus())["values"])
-            ip = self.tabela.item(self.tabela.focus())["values"][1]
+            selectedRow = self.tabela.item(self.tabela.focus())["values"]
+            print(selectedRow)
+            ip = selectedRow[1]
             port = FramePortScan(self, ip).show()
+            self.tabela.delete("I"+str(selectedRow[0]).zfill(3))    
+            self.tabela.insert('', selectedRow[0] - 1 , values=(str(selectedRow[0]).zfill(2), selectedRow[1], selectedRow[2], selectedRow[3], selectedRow[4], port), tags=("par" if selectedRow[0] % 2 == 0 else "impar",))
         except:
             self.showMsg("Error", "Select one item to scan ports!")
-        #if port:    
-        #    self.tabela.insert('', 'end', values=(self.tabela.item(self.tabela.focus())["values"], port))
 
     def funcBtnSave(self):
         print("Save")
@@ -262,18 +269,19 @@ class FramePrincipal(Frame):
         return result
 
     def printTable(self, data):
-        count = 1
+        print("print Table")
+        self.listCount = 1
         for n in data:
             if n:
                 ip = {}
-                ip["id"] = str(count).zfill(2)
+                ip["id"] = str(self.listCount).zfill(2)
                 ip["ip"] = n[0]
                 ip["macaddress"] = n[1]
                 ip["vendor"] = n[2]
                 ip["hostname"] = n[3]
                 self.scanResult.append(ip)
-                self.tabela.insert('', 'end', text=n, values=(str(count).zfill(2), n[0],  n[1], n[2], n[3]), tags=("par" if count % 2 == 0 else "impar",) )
-                count += 1
+                self.tabela.insert('', 'end', text=n, values=(str(self.listCount).zfill(2), n[0],  n[1], n[2], n[3]), tags=("par" if self.listCount % 2 == 0 else "impar",) )
+                self.listCount += 1
         self.tabela.tag_configure("par", background=self._agua)
         self.tabela.tag_configure("impar", background=self._branco)
         self.showMsg("Done", "Scan Complete!")
@@ -480,14 +488,11 @@ class FramePortScan(Frame):
         else:
             print("Common")
             result = self.multiThreadScan(self._common)
-        
-        print(result)
         for n in result:
             if n:
                 self._portResult.append(n)
         print(self._portResult)
         self.toplevel.destroy()
-
 
     def portScan(self, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
