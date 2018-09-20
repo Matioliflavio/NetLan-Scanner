@@ -193,15 +193,19 @@ class FramePrincipal(Frame):
         try:
             selectedRow = self.tabela.item(self.tabela.focus())["values"]
             print(selectedRow)
+        except:
+            self.showMsg("Error", "Select one item to scan ports!")
+        try:
             ip = selectedRow[1]
             port = FramePortScan(self, ip).show()
             self.tabela.delete("I"+str(selectedRow[0]).zfill(3))    
             self.tabela.insert('', selectedRow[0] - 1 , values=(str(selectedRow[0]).zfill(2), selectedRow[1], selectedRow[2], selectedRow[3], selectedRow[4], port), tags=("par" if selectedRow[0] % 2 == 0 else "impar",))
         except:
-            self.showMsg("Error", "Select one item to scan ports!")
+            self.showMsg("Error", "Can´t scan ports!")
 
     def funcBtnSave(self):
         print("Save")
+        #precisa arrumar isso para que na exportação seja salvo os resultados das portas
         if self.scanResult:
             self.janelaSave = Toplevel(self.master)
             self.appSave = FrameSave(self.janelaSave, self.scanResult)
@@ -248,7 +252,6 @@ class FramePrincipal(Frame):
             print("END IP NOT VALID")
             self.showMsg("Scan Error", "Check End IP. \n It´s not valid IP address!")
             return
-        #qtd = int(ipaddress.IPv4Address(endIP)) - int(ipaddress.IPv4Address(startIP)) + 1
         l=[]
         #adiciona uns broadcast pra melhorar o resultado?!
         for i in range(2):
