@@ -3,7 +3,8 @@ import tkinter as tk
 from tkinter import filedialog
 import tkinter.ttk as ttk
 from tkinter import messagebox as mbox
-from multiprocessing.dummy import Pool as ThreadPool 
+from multiprocessing.dummy import Pool as ThreadPool
+import threading 
 from getmac import get_mac_address
 import ipaddress
 import socket
@@ -174,9 +175,11 @@ class FramePrincipal(Frame):
             self.tabela.delete(i)
 
     def funcBtnScan(self, event=None):
-        
-        self.funcBtnClear()
         self.status.set("Scaning..Wait!")
+        self.after(500, self.start)
+
+    def start(self):
+        self.funcBtnClear()
         l = self.buildIpList(self.startIPaddr.get(), self.endIPaddr.get())
         if l == None: 
             return
@@ -185,7 +188,10 @@ class FramePrincipal(Frame):
 
         if result:
             self.printTable(result)
-        self.status.set("Done!")
+            self.showMsg("Done", "Scan Complete!")
+
+        self.status.set("")
+
 
     def funcBtnPort(self):
         print("Port")
@@ -287,10 +293,7 @@ class FramePrincipal(Frame):
                 self.listCount += 1
         self.tabela.tag_configure("par", background=self._agua)
         self.tabela.tag_configure("impar", background=self._branco)
-        self.showMsg("Done", "Scan Complete!")
         print(self.scanResult)
-
-    
 
 class FrameSave(Frame):
 
@@ -389,8 +392,6 @@ class FrameSave(Frame):
                 mbox.showinfo("Error", "Can´t save file!")
         mbox.showinfo("Export", "File Saved!")        
         self.master.destroy()
-
-
 
 class FramePortScan(Frame):
     
