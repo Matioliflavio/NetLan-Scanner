@@ -32,7 +32,7 @@ class FramePrincipal(Frame):
     _font5 = "Tahoma 13 Bold"
 
     #Strings
-    _version = "0.40b"
+    _version = "0.50b"
 
     _columns = ('IP', 'Macaddress', 'Vendor', 'Hostname', 'Ports')
 
@@ -198,14 +198,21 @@ class FramePrincipal(Frame):
         port = None
         try:
             selectedRow = self.tabela.item(self.tabela.focus())["values"]
-            print(selectedRow)
+            
         except:
             self.showMsg("Error", "Select one item to scan ports!")
+
+        print("----------")
+        t = self.scanResult[selectedRow[0]-1]["ports"]
+        print(t)
+        print("----------")
+
         try:
             ip = selectedRow[1]
             port = FramePortScan(self, ip).show()
             self.tabela.delete("I"+str(selectedRow[0]).zfill(3))    
             self.tabela.insert('', selectedRow[0] - 1 , values=(str(selectedRow[0]).zfill(2), selectedRow[1], selectedRow[2], selectedRow[3], selectedRow[4], port), tags=("par" if selectedRow[0] % 2 == 0 else "impar",))
+            self.scanResult[selectedRow[0]-1]["ports"] = port
         except:
             self.showMsg("Error", "Can´t scan ports!")
 
@@ -288,6 +295,7 @@ class FramePrincipal(Frame):
                 ip["macaddress"] = n[1]
                 ip["vendor"] = n[2]
                 ip["hostname"] = n[3]
+                ip["ports"] = None
                 self.scanResult.append(ip)
                 self.tabela.insert('', 'end', text=n, values=(str(self.listCount).zfill(2), n[0],  n[1], n[2], n[3]), tags=("par" if self.listCount % 2 == 0 else "impar",) )
                 self.listCount += 1
@@ -366,7 +374,8 @@ class FrameSave(Frame):
                                 "\tIP: " + str(iten["ip"]) + 
                                 "\tMacAddress: " +  str(iten["macaddress"]) + 
                                 "\tVendor: " +  str(iten["vendor"]) + 
-                                "\tHostName: " +  str(iten["hostname"]) + "\n")
+                                "\tHostName: " +  str(iten["hostname"]) + 
+                                "\tPorts: " + str(iten["ports"]) + "\n")
                 f.close()
             except:
                 mbox.showinfo("Error", "Can´t save file!")
@@ -374,7 +383,7 @@ class FrameSave(Frame):
             print("csv")
             try:
                 f = open(caminho + os.sep + "ScanResult.csv", "w")
-                columns = ["id", "ip", "macaddress", "vendor", "hostname"]
+                columns = ["id", "ip", "macaddress", "vendor", "hostname", "ports"]
                 writer = csv.DictWriter(f, fieldnames=columns)
                 writer.writeheader()
                 for data in self.data:
