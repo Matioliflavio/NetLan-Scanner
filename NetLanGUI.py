@@ -4,7 +4,6 @@ from tkinter import filedialog
 import tkinter.ttk as ttk
 from tkinter import messagebox as mbox
 from multiprocessing.dummy import Pool as ThreadPool
-import threading 
 from getmac import get_mac_address
 import ipaddress
 import socket
@@ -12,6 +11,8 @@ import json
 import csv
 import os
 import struct
+import subprocess
+import time
 
 #before to start, install lib getmac: pip install get-mac
 
@@ -29,7 +30,7 @@ class MainFrame(Frame):
     _font3 = "Tahoma 13"
 
     #Variables
-    _version = "0.80b"
+    _version = "0.90"
 
     _columns = ('IP', 'Macaddress', 'Vendor', 'Hostname', 'Ports')
 
@@ -84,6 +85,8 @@ class MainFrame(Frame):
         self.startIP = Entry(self.frameBtns, textvariable=self.startIPaddr, font=self._font3, width=14)
         self.startIP.pack(side=LEFT, padx=1, pady=10)
         self.startIP.bind("<Return>", self.funcBtnScan)
+        self.startIP.bind("<Escape>", self.funcBtnClear)
+        self.startIP.focus_set()
 
         self.to = Label(self.frameBtns, text="to:", font=self._font3, bg=self._marine, fg=self._white)
         self.to.pack(side=LEFT, padx=1, pady=10)
@@ -92,19 +95,20 @@ class MainFrame(Frame):
         self.endIP = Entry(self.frameBtns, textvariable=self.endIPaddr, font=self._font3, width=14)
         self.endIP.pack(side=LEFT, padx=3, pady=10)
         self.endIP.bind("<Return>", self.funcBtnScan)
+        self.startIP.bind("<Escape>", self.funcBtnClear)
 
         self.getLocalIP()
     
+        #-Status Mensage
+        self.status = StringVar()
+        self.progress = Entry(self.frameBtns, textvariable=self.status, disabledforeground=self._red, font=self._font3, width=15, state=DISABLED, justify=CENTER)
+        self.progress.pack(side=LEFT, padx=5, pady=10)
+
         #-Button Port Scan
         self.btnPort = Button(self.frameBtns, width=78, height=30, command=self.funcBtnPort)
         self.imgPort = PhotoImage(file="Icons/Port.png")
         self.btnPort.config(image=self.imgPort)
         self.btnPort.pack(side=LEFT, padx=5, pady=10)
-
-        #-Status Mensage
-        self.status = StringVar()
-        self.progress = Entry(self.frameBtns, textvariable=self.status, disabledforeground=self._red, font=self._font3, width=14, state=DISABLED)
-        self.progress.pack(side=LEFT, padx=5, pady=10)
 
         #-Button Save
         self.btnSave = Button(self.frameBtns, width=78, height=30, command=self.funcBtnSave)
@@ -173,7 +177,7 @@ class MainFrame(Frame):
             print("Unable to get Hostname and IP")
 
     #button clear function
-    def funcBtnClear(self):
+    def funcBtnClear(self, event=None):
         self._scanResult.clear()
         self.status.set("")
         for i in self.table.get_children():
@@ -186,6 +190,7 @@ class MainFrame(Frame):
 
     #start scan procedure
     def start(self):
+        self.starttime = time.clock()
         self.funcBtnClear()
         l = self.buildIpList(self.startIPaddr.get(), self.endIPaddr.get())
         if l == None: 
@@ -195,9 +200,8 @@ class MainFrame(Frame):
 
         if result:
             self.printTable(result)
+            self.status.set("Scan Time: %.4ss " %(time.clock() - self.starttime))
             self.showMsg("Done", "Scan Complete!")
-
-        self.status.set("")
 
     #button port scan function
     def funcBtnPort(self):
@@ -269,9 +273,10 @@ class MainFrame(Frame):
 
     #Step 3
     def scan(self, ip):
-        print("start scan %s" %ip)
+        #print("start scan %s" %ip)
         ping = "ping -n 1 -i 1 -w 1000 " + str(ip)
-        if os.system(ping) == 0:
+        try: 
+            subprocess.check_call(ping, shell=True)
             #Mac Address
             try:
                 macaddress = get_mac_address(ip=str(ip))
@@ -286,15 +291,15 @@ class MainFrame(Frame):
                 hostname = socket.gethostbyaddr(str(ip))[0]
             except:
                 hostname = None
-                print("Unable to get Hostname")
+                #print("Unable to get Hostname")
 
             return ip, macaddress, vendor, hostname
-        else:
+        except subprocess.CalledProcessError:
             return
 
     #Step 4
     def printTable(self, data):
-        print("print Table")
+        #print("print Table")
         self._listCount = 1
         for n in data:
             if n:
@@ -310,7 +315,6 @@ class MainFrame(Frame):
                 self._listCount += 1
         self.table.tag_configure("even", background=self._water)
         self.table.tag_configure("odd", background=self._white)
-        print(self._scanResult)
 
 class FrameSave(Frame):
 
@@ -552,8 +556,11 @@ class FramePortScan(Frame):
         value = self._portResult
         return value
 
-def main():
-    app = MainFrame()
-    app.mainloop()
+#def main():
+#    app = MainFrame()
+#    app.mainloop()
+#
+#main()
 
-main()
+app = MainFrame()
+app.mainloop()
